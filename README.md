@@ -1,6 +1,6 @@
 # Task Manager API
 
-API para gestionar tareas asignadas a usuarios, desarrollada con **FastAPI**, persistencia en archivo **JSON** e integración con **IA generativa** (OpenAI).
+API para gestionar tareas asignadas a usuarios, desarrollada con **FastAPI**, persistencia en archivo **JSON** e integración con **IA generativa** (Azure OpenAI / OpenAI).
 
 Este proyecto corresponde al **Entregable 2** del Programa Avanzado en Inteligencia Artificial para Programar. Extiende el Entregable 1 añadiendo endpoints de IA sobre el modelo `Task`.
 
@@ -26,12 +26,14 @@ Se mantiene la arquitectura solicitada en la práctica:
 
 ## Entregable 2: IA generativa
 
-El Entregable 2 añade capacidades de enriquecimiento de tareas mediante OpenAI:
+El Entregable 2 añade capacidades de enriquecimiento de tareas mediante IA generativa:
 
 - Generar descripciones profesionales.
 - Clasificar tareas por categoría.
 - Estimar horas de esfuerzo.
 - Auditar riesgos y proponer mitigaciones.
+
+El servicio de IA soporta **Azure OpenAI** (prioritario) y **OpenAI directo** como alternativa.
 
 Estos endpoints **no persisten** automáticamente en `data/tasks.json`. Devuelven la tarea enriquecida para que puedas revisarla y, si lo deseas, guardarla con el CRUD (`POST /tasks` o `PUT /tasks/{task_id}`).
 
@@ -57,7 +59,7 @@ Las tareas antiguas en `data/tasks.json` que no tengan estos campos siguen siend
 - FastAPI
 - Uvicorn
 - Pydantic
-- OpenAI (API oficial)
+- OpenAI (API oficial, compatible con Azure OpenAI)
 - python-dotenv
 - Pytest
 - JSON
@@ -102,22 +104,54 @@ task_manager_app/
 
 ## Configuración de variables de entorno
 
-1. Copia el archivo de ejemplo:
+### 1. Crear el archivo `.env`
+
+Copia la plantilla incluida en el proyecto:
 
 ```bash
 cp .env.example .env
 ```
 
-2. Edita `.env` y configura tu clave de OpenAI:
+### 2. Configurar Azure OpenAI (recomendado)
+
+Si tienes un recurso en **Azure OpenAI** o **Azure AI Foundry**, edita `.env` con tus datos reales:
 
 ```env
-OPENAI_API_KEY=pon_aqui_tu_clave
+AZURE_OPENAI_API_KEY=pon_aqui_tu_clave_de_azure
+AZURE_OPENAI_ENDPOINT=https://tu-recurso.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT=nombre_de_tu_deployment
+AZURE_OPENAI_API_VERSION=2024-02-15-preview
+```
+
+Notas:
+
+- `AZURE_OPENAI_ENDPOINT` es la URL base de tu recurso Azure.
+- `AZURE_OPENAI_DEPLOYMENT` es el **nombre del deployment**, no el nombre del modelo base.
+- Si alguna variable `AZURE_OPENAI_*` está informada, el servicio **prioriza Azure OpenAI** sobre OpenAI directo.
+
+### 3. Alternativa: OpenAI directo (opcional)
+
+Si no usas Azure, puedes configurar OpenAI directamente:
+
+```env
+OPENAI_API_KEY=opcional_si_usas_openai_directo
 OPENAI_MODEL=gpt-4o-mini
 ```
 
-**Importante:** no subas claves reales al repositorio. El archivo `.env` está excluido en `.gitignore`. Usa `.env.example` solo como plantilla orientativa.
+### 4. Seguridad de credenciales
 
-Sin `OPENAI_API_KEY`, los endpoints de IA devolverán un error 500 con un mensaje claro indicando que falta la configuración.
+| Archivo | ¿Se sube al repositorio? | Uso |
+|---|---|---|
+| `.env.example` | **Sí** | Plantilla orientativa sin claves reales |
+| `.env` | **No** | Contiene tus credenciales reales |
+
+**Importante:**
+
+- **Nunca** subas `.env` al repositorio ni lo incluyas en el ZIP de entrega.
+- `.env` está excluido en `.gitignore`.
+- `.env.example` **sí debe entregarse** como referencia de configuración.
+
+Sin configuración válida (`AZURE_OPENAI_*` completas u `OPENAI_API_KEY`), los endpoints de IA devolverán un error 500 con un mensaje claro.
 
 ---
 
@@ -186,6 +220,34 @@ En Swagger encontrarás dos grupos de endpoints:
 
 - **tasks**: CRUD clásico.
 - **AI Tasks**: endpoints de IA generativa.
+
+### Probar endpoints de IA en Swagger
+
+1. Arranca la API con `uvicorn app.main:app --reload`.
+2. Asegúrate de tener `.env` configurado con Azure OpenAI u OpenAI directo.
+3. Abre `http://127.0.0.1:8000/docs`.
+4. Entra en la sección **AI Tasks**.
+5. Elige un endpoint (por ejemplo, `POST /ai/tasks/describe`).
+6. Pulsa **Try it out**.
+7. Pega el JSON de ejemplo y pulsa **Execute**.
+8. Revisa la respuesta en el panel inferior.
+
+---
+
+## Probar con Postman
+
+También puedes probar los endpoints de IA con Postman:
+
+1. Método: `POST`
+2. URL base: `http://127.0.0.1:8000`
+3. Endpoints de IA:
+   - `http://127.0.0.1:8000/ai/tasks/describe`
+   - `http://127.0.0.1:8000/ai/tasks/categorize`
+   - `http://127.0.0.1:8000/ai/tasks/estimate`
+   - `http://127.0.0.1:8000/ai/tasks/audit`
+4. En **Headers**, añade: `Content-Type: application/json`
+5. En **Body**, selecciona **raw** y **JSON**, y pega uno de los ejemplos de la sección siguiente.
+6. Envía la petición y comprueba que la respuesta incluye el campo enriquecido (`description`, `category`, `effort_hours`, `risk_analysis`, etc.).
 
 ---
 
@@ -324,12 +386,12 @@ Desde la carpeta raíz del proyecto `task_manager_app`, con el entorno virtual a
 python -m pytest
 ```
 
-Las pruebas de IA **no llaman a OpenAI**. Usan mocks para simular las respuestas del servicio.
+Las pruebas de IA **no llaman a Azure OpenAI ni a OpenAI**. Usan mocks para simular las respuestas del servicio.
 
 Resultado esperado (aproximado):
 
 ```text
-14 passed
+18 passed
 ```
 
 Las pruebas comprueban:
@@ -339,6 +401,7 @@ Las pruebas comprueban:
 - Endpoints de IA: describe, categorize, estimate y audit.
 - Validación de respuestas numéricas en `estimate`.
 - Error 422 cuando la IA devuelve un esfuerzo no convertible.
+- Selección de cliente Azure OpenAI u OpenAI directo según variables de entorno.
 
 ---
 

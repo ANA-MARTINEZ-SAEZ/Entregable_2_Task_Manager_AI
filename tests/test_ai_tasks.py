@@ -1,6 +1,7 @@
 """Pruebas automáticas de los endpoints de IA con mocks."""
 
 from decimal import Decimal
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -117,3 +118,87 @@ def test_estimate_task_invalid_llm_response_returns_422(
     response = client.post("/ai/tasks/estimate", json=build_ai_task_payload())
 
     assert response.status_code == 422
+
+
+def test_get_llm_client_uses_azure_when_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "azure-test-key")
+    monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com/")
+    monkeypatch.setenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini-deployment")
+    monkeypatch.setenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    mock_client = MagicMock()
+    captured_kwargs: dict = {}
+
+    def mock_azure_openai(**kwargs: object) -> MagicMock:
+        captured_kwargs.update(kwargs)
+        return mock_client
+
+    monkeypatch.setattr(ai_task_service, "AzureOpenAI", mock_azure_openai)
+
+    client, model = ai_task_service._get_llm_client()
+
+    assert client is mock_client
+    assert model == "gpt-4o-mini-deployment"
+    assert captured_kwargs["api_key"] == "azure-test-key"
+    assert captured_kwargs["azure_endpoint"] == "https://test.openai.azure.com/"
+    assert captured_kwargs["api_version"] == "2024-02-15-preview"
+
+
+def test_get_llm_client_uses_openai_when_azure_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for env_var in (
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_OPENAI_ENDPOINT",
+        "AZURE_OPENAI_DEPLOYMENT",
+        "AZURE_OPENAI_API_VERSION",
+    ):
+        monkeypatch.delenv(env_var, raising=False)
+
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-test-key")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-4o-mini")
+
+    mock_client = MagicMock()
+    captured_kwargs: dict = {}
+
+    def mock_openai(**kwargs: object) -> MagicMock:
+        captured_kwargs.update(kwargs)
+        return mock_client
+
+    monkeypatch.setattr(ai_task_service, "OpenAI", mock_openai)
+
+    client, model = ai_task_service._get_llm_client()
+
+    assert client is mock_client
+    assert model == "gpt-4o-mini"
+    assert captured_kwargs["api_key"] == "openai-test-key"
+
+
+def test_get_llm_client_raises_when_azure_config_is_incomplete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "azure-test-key")
+    monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
+    monkeypatch.delenv("AZURE_OPENAI_DEPLOYMENT", raising=False)
+
+    with pytest.raises(ai_task_service.AITaskServiceError, match="Azure OpenAI incompleta"):
+        ai_task_service._get_llm_client()
+
+
+def test_get_llm_client_raises_when_no_provider_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for env_var in (
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_OPENAI_ENDPOINT",
+        "AZURE_OPENAI_DEPLOYMENT",
+        "AZURE_OPENAI_API_VERSION",
+        "OPENAI_API_KEY",
+    ):
+        monkeypatch.delenv(env_var, raising=False)
+
+    with pytest.raises(ai_task_service.AITaskServiceError, match="No hay configuración de IA"):
+        ai_task_service._get_llm_client()

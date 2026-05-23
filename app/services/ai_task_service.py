@@ -7,7 +7,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from openai import OpenAI
+from openai import AzureOpenAI, OpenAI
 
 VALID_CATEGORIES = (
     "Frontend",
@@ -21,18 +21,65 @@ VALID_CATEGORIES = (
     "Otra",
 )
 
+AZURE_ENV_VARS = (
+    "AZURE_OPENAI_API_KEY",
+    "AZURE_OPENAI_ENDPOINT",
+    "AZURE_OPENAI_DEPLOYMENT",
+)
+
 
 class AITaskServiceError(Exception):
     """Error controlado del servicio de IA."""
 
 
-def _get_openai_client() -> tuple[OpenAI, str]:
-    """Obtiene el cliente de OpenAI y el modelo configurado."""
+def _is_azure_configured() -> bool:
+    """Indica si hay alguna variable de Azure OpenAI informada."""
+    return any(os.getenv(var) for var in AZURE_ENV_VARS)
+
+
+def _get_azure_config() -> dict[str, str]:
+    """Valida y devuelve la configuracion de Azure OpenAI."""
+    config = {
+        "api_key": os.getenv("AZURE_OPENAI_API_KEY"),
+        "endpoint": os.getenv("AZURE_OPENAI_ENDPOINT"),
+        "deployment": os.getenv("AZURE_OPENAI_DEPLOYMENT"),
+        "api_version": os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
+    }
+
+    missing = [
+        env_name
+        for env_name, value in (
+            ("AZURE_OPENAI_API_KEY", config["api_key"]),
+            ("AZURE_OPENAI_ENDPOINT", config["endpoint"]),
+            ("AZURE_OPENAI_DEPLOYMENT", config["deployment"]),
+        )
+        if not value
+    ]
+    if missing:
+        raise AITaskServiceError(
+            "Configuración de Azure OpenAI incompleta. "
+            f"Faltan estas variables en .env: {', '.join(missing)}"
+        )
+
+    return config
+
+
+def _get_llm_client() -> tuple[OpenAI | AzureOpenAI, str]:
+    """Obtiene el cliente de IA y el modelo o deployment a utilizar."""
+    if _is_azure_configured():
+        config = _get_azure_config()
+        client = AzureOpenAI(
+            api_key=config["api_key"],
+            api_version=config["api_version"],
+            azure_endpoint=config["endpoint"],
+        )
+        return client, config["deployment"]
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise AITaskServiceError(
-            "OPENAI_API_KEY no está configurada. "
-            "Crea un archivo .env con tu clave de OpenAI."
+            "No hay configuración de IA disponible. "
+            "Configura las variables AZURE_OPENAI_* o OPENAI_API_KEY en tu archivo .env."
         )
 
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
@@ -40,8 +87,8 @@ def _get_openai_client() -> tuple[OpenAI, str]:
 
 
 def _call_llm(system_prompt: str, user_prompt: str) -> str:
-    """Realiza una llamada al modelo de OpenAI y devuelve el texto generado."""
-    client, model = _get_openai_client()
+    """Realiza una llamada al modelo de IA y devuelve el texto generado."""
+    client, model = _get_llm_client()
 
     try:
         response = client.chat.completions.create(
@@ -50,14 +97,14 @@ def _call_llm(system_prompt: str, user_prompt: str) -> str:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.3,
         )
     except Exception as exc:
-        raise AITaskServiceError(f"Error al comunicarse con OpenAI: {exc}") from exc
+        provider = "Azure OpenAI" if _is_azure_configured() else "OpenAI"
+        raise AITaskServiceError(f"Error al comunicarse con {provider}: {exc}") from exc
 
     content = response.choices[0].message.content
     if not content:
-        raise AITaskServiceError("OpenAI devolvió una respuesta vacía.")
+        raise AITaskServiceError("El servicio de IA devolvió una respuesta vacía.")
 
     return content.strip()
 

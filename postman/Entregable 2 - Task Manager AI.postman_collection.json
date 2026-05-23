@@ -1,0 +1,156 @@
+{
+  "info": {
+    "_postman_id": "4ef6922d-5e7c-4a2e-8765-207358e3ea83",
+    "name": "Entregable 2 - Task Manager AI",
+    "description": "### Welcome to Postman! This is your first collection. \n\nCollections are your starting point for building and testing APIs. You can use this one to:\n\n• Group related requests\n• Test your API in real-world scenarios\n• Document and share your requests\n\nUpdate the name and overview whenever you’re ready to make it yours.\n\n[Learn more about Postman Collections.](https://learning.postman.com/docs/collections/collections-overview/)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "55149872",
+    "_collection_link": "https://go.postman.co/collection/55149872-4ef6922d-5e7c-4a2e-8765-207358e3ea83?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "http://127.0.0.1:8000/ai/tasks/audit",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"4\",\n  \"title\": \"Integrar Azure OpenAI en la API de tareas\",\n  \"description\": \"Configurar el servicio de inteligencia artificial para generar descripciones, categorías, estimaciones y análisis de riesgos.\",\n  \"priority\": \"alta\",\n  \"effort_hours\": 5,\n  \"status\": \"pendiente\",\n  \"assigned_to\": \"Ana\",\n  \"category\": \"Backend\",\n  \"risk_analysis\": null,\n  \"risk_mitigation\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/ai/tasks/describe",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "ai",
+            "tasks",
+            "describe"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:8000/ai/tasks/describe",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"1\",\n  \"title\": \"Implementar login de usuarios\",\n  \"description\": \"\",\n  \"priority\": \"alta\",\n  \"effort_hours\": null,\n  \"status\": \"pendiente\",\n  \"assigned_to\": \"Ana\",\n  \"category\": null,\n  \"risk_analysis\": null,\n  \"risk_mitigation\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/ai/tasks/describe",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "ai",
+            "tasks",
+            "describe"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:8000/ai/tasks/categorize",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"2\",\n  \"title\": \"Crear endpoint para registrar usuarios\",\n  \"description\": \"Desarrollar un endpoint para registrar usuarios nuevos en la API.\",\n  \"priority\": \"media\",\n  \"effort_hours\": null,\n  \"status\": \"pendiente\",\n  \"assigned_to\": \"Ana\",\n  \"category\": null,\n  \"risk_analysis\": null,\n  \"risk_mitigation\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/ai/tasks/categorize",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "ai",
+            "tasks",
+            "categorize"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "http://127.0.0.1:8000/ai/tasks/estimate",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"3\",\n  \"title\": \"Crear pruebas automáticas para los endpoints de tareas\",\n  \"description\": \"Añadir tests con pytest para comprobar creación, lectura, actualización y eliminación de tareas.\",\n  \"priority\": \"media\",\n  \"effort_hours\": null,\n  \"status\": \"pendiente\",\n  \"assigned_to\": \"Ana\",\n  \"category\": \"Testing\",\n  \"risk_analysis\": null,\n  \"risk_mitigation\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/ai/tasks/estimate",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "ai",
+            "tasks",
+            "estimate"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
