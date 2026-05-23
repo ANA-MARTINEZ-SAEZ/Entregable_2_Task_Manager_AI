@@ -19,6 +19,9 @@ class Task:
     status: str
     assigned_to: str
     id: str = field(default_factory=lambda: str(uuid4()))
+    category: str | None = None
+    risk_analysis: str | None = None
+    risk_mitigation: str | None = None
 
     def __post_init__(self) -> None:
         """Asegura tipos consistentes tras la construccion."""
@@ -35,6 +38,9 @@ class Task:
             "effort_hours": float(self.effort_hours),
             "status": self.status,
             "assigned_to": self.assigned_to,
+            "category": self.category,
+            "risk_analysis": self.risk_analysis,
+            "risk_mitigation": self.risk_mitigation,
         }
 
     @classmethod
@@ -48,4 +54,7 @@ class Task:
             effort_hours=Decimal(str(data["effort_hours"])),
             status=data["status"],
             assigned_to=data["assigned_to"],
+            category=data.get("category"),
+            risk_analysis=data.get("risk_analysis"),
+            risk_mitigation=data.get("risk_mitigation"),
         )

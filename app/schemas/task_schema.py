@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 PriorityValue = Literal["baja", "media", "alta", "bloqueante"]
 StatusValue = Literal["pendiente", "en progreso", "en revisión", "completada"]
@@ -18,6 +18,9 @@ class TaskCreate(BaseModel):
     effort_hours: Decimal = Field(ge=0)
     status: StatusValue
     assigned_to: str
+    category: Optional[str] = None
+    risk_analysis: Optional[str] = None
+    risk_mitigation: Optional[str] = None
 
     @field_validator("title", "assigned_to")
     @classmethod
@@ -36,6 +39,9 @@ class TaskUpdate(BaseModel):
     effort_hours: Optional[Decimal] = Field(default=None, ge=0)
     status: Optional[StatusValue] = None
     assigned_to: Optional[str] = None
+    category: Optional[str] = None
+    risk_analysis: Optional[str] = None
+    risk_mitigation: Optional[str] = None
 
     @field_validator("title", "assigned_to")
     @classmethod
@@ -55,3 +61,32 @@ class TaskResponse(BaseModel):
     effort_hours: Decimal = Field(ge=0)
     status: StatusValue
     assigned_to: str
+    category: Optional[str] = None
+    risk_analysis: Optional[str] = None
+    risk_mitigation: Optional[str] = None
+
+    @field_serializer("effort_hours")
+    def serialize_effort_hours(self, value: Decimal) -> float:
+        return float(value)
+
+
+class TaskAIInput(BaseModel):
+    """Datos de entrada para los endpoints de IA generativa."""
+
+    title: str
+    priority: PriorityValue
+    status: StatusValue
+    assigned_to: str
+    id: Optional[str] = None
+    description: Optional[str] = ""
+    effort_hours: Optional[Decimal] = Field(default=None, ge=0)
+    category: Optional[str] = None
+    risk_analysis: Optional[str] = None
+    risk_mitigation: Optional[str] = None
+
+    @field_validator("title", "assigned_to")
+    @classmethod
+    def validate_non_empty_text(cls, value: str) -> str:
+        if not value or not value.strip():
+            raise ValueError("Este campo no debe estar vacío.")
+        return value
